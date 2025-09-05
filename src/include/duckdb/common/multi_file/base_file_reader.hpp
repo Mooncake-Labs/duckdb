@@ -75,7 +75,7 @@ public:
 	DUCKDB_API virtual void PrepareReader(ClientContext &context, GlobalTableFunctionState &);
 
 	virtual bool TryInitializeScan(ClientContext &context, GlobalTableFunctionState &gstate,
-	                               LocalTableFunctionState &lstate) = 0;
+	                               LocalTableFunctionState &lstate, unique_lock<mutex> &parallel_lock) = 0;
 	//! Scan a chunk from the read state
 	virtual void Scan(ClientContext &context, GlobalTableFunctionState &global_state,
 	                  LocalTableFunctionState &local_state, DataChunk &chunk) = 0;

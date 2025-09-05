@@ -453,7 +453,7 @@ void JSONReader::PrepareReader(ClientContext &context, GlobalTableFunctionState 
 }
 
 bool JSONReader::TryInitializeScan(ClientContext &context, GlobalTableFunctionState &gstate_p,
-                                   LocalTableFunctionState &lstate_p) {
+                                   LocalTableFunctionState &lstate_p, unique_lock<mutex> &parallel_lock) {
 	auto &gstate = gstate_p.Cast<JSONGlobalTableFunctionState>().state;
 	auto &lstate = lstate_p.Cast<JSONLocalTableFunctionState>().state;
 

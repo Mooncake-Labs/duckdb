@@ -133,11 +133,20 @@ struct MultiFileReaderData {
 };
 
 struct MultiFileGlobalState : public GlobalTableFunctionState {
-	explicit MultiFileGlobalState(MultiFileList &file_list_p) : file_list(file_list_p) {
+	explicit MultiFileGlobalState(ClientContext &context, MultiFileList &file_list_p) : context(context), file_list(file_list_p) {
 	}
-	explicit MultiFileGlobalState(unique_ptr<MultiFileList> owned_file_list_p)
-	    : file_list(*owned_file_list_p), owned_file_list(std::move(owned_file_list_p)) {
+	explicit MultiFileGlobalState(ClientContext &context, unique_ptr<MultiFileList> owned_file_list_p)
+	    : context(context), file_list(*owned_file_list_p), owned_file_list(std::move(owned_file_list_p)) {
 	}
+
+	~MultiFileGlobalState() {
+		for (auto &reader : readers) {
+			reader->closed_reader = reader->reader;
+			reader->reader = nullptr;
+		}
+	}
+
+	ClientContext &context;
 
 	//! The file list to scan
 	MultiFileList &file_list;

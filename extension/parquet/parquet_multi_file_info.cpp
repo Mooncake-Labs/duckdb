@@ -547,7 +547,7 @@ unique_ptr<LocalTableFunctionState> ParquetMultiFileInfo::InitializeLocalState(E
 }
 
 bool ParquetReader::TryInitializeScan(ClientContext &context, GlobalTableFunctionState &gstate_p,
-                                      LocalTableFunctionState &lstate_p) {
+                                      LocalTableFunctionState &lstate_p, unique_lock<mutex> &parallel_lock) {
 	auto &gstate = gstate_p.Cast<ParquetReadGlobalState>();
 	auto &lstate = lstate_p.Cast<ParquetReadLocalState>();
 	if (gstate.row_group_index >= NumRowGroups()) {
@@ -556,8 +556,9 @@ bool ParquetReader::TryInitializeScan(ClientContext &context, GlobalTableFunctio
 	}
 	// The current reader has rowgroups left to be scanned
 	vector<idx_t> group_indexes {gstate.row_group_index};
-	InitializeScan(context, lstate.scan_state, group_indexes);
 	gstate.row_group_index++;
+	parallel_lock.unlock();
+	InitializeScan(context, lstate.scan_state, group_indexes);
 	return true;
 }
 

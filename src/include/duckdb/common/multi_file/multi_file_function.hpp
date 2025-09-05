@@ -403,20 +403,29 @@ public:
 
 			auto &current_reader_data = *gstate.readers[gstate.file_index];
 			if (current_reader_data.file_state == MultiFileFileState::OPEN) {
+
+				// Hack: optimistically assume TryInitializeScan returns true
+				idx_t batch_index = gstate.batch_index++;
+				idx_t file_index = gstate.file_index;
+				vector<idx_t> projection_ids(gstate.projection_ids);
+
+				// TryInitializeScan will unlock parallel_lock when returning true
 				if (current_reader_data.reader->TryInitializeScan(context, *gstate.global_state,
-				                                                  *scan_data.local_state)) {
+				                                                  *scan_data.local_state, parallel_lock)) {
 					if (!current_reader_data.reader) {
 						throw InternalException("MultiFileReader was moved");
 					}
 					// The current reader has data left to be scanned
-					scan_data.batch_index = gstate.batch_index++;
+					scan_data.batch_index = batch_index;
 					auto old_file_index = scan_data.file_index;
-					scan_data.file_index = gstate.file_index;
+					scan_data.file_index = file_index;
 					if (old_file_index != scan_data.file_index) {
-						InitializeFileScanState(context, current_reader_data, scan_data, gstate.projection_ids);
+						InitializeFileScanState(context, current_reader_data, scan_data, projection_ids);
 					}
 					return true;
 				} else {
+					gstate.batch_index--;
+
 					// Set state to the next file
 					++gstate.file_index;
 
@@ -425,8 +434,6 @@ public:
 
 					//! Finish processing the file
 					current_reader_data.reader->FinishFile(context, *gstate.global_state);
-					current_reader_data.closed_reader = current_reader_data.reader;
-					current_reader_data.reader = nullptr;
 					continue;
 				}
 			} else if (current_reader_data.file_state == MultiFileFileState::SKIPPED) {
@@ -471,9 +478,9 @@ public:
 		// before instantiating a scan trigger a dynamic filter pushdown if possible
 		auto new_list = MultiFileFilterPushdown(context, bind_data, input.column_ids, input.filters);
 		if (new_list) {
-			result = make_uniq<MultiFileGlobalState>(std::move(new_list));
+			result = make_uniq<MultiFileGlobalState>(context, std::move(new_list));
 		} else {
-			result = make_uniq<MultiFileGlobalState>(*bind_data.file_list);
+			result = make_uniq<MultiFileGlobalState>(context, *bind_data.file_list);
 		}
 		auto &file_list = result->file_list;
 		file_list.InitializeScan(result->file_list_scan);

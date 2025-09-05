@@ -347,7 +347,7 @@ void CSVFileScan::PrepareReader(ClientContext &context, GlobalTableFunctionState
 }
 
 bool CSVFileScan::TryInitializeScan(ClientContext &context, GlobalTableFunctionState &gstate_p,
-                                    LocalTableFunctionState &lstate_p) {
+                                    LocalTableFunctionState &lstate_p, unique_lock<mutex> &parallel_lock) {
 	auto &gstate = gstate_p.Cast<CSVGlobalState>();
 	auto &lstate = lstate_p.Cast<CSVLocalState>();
 	auto csv_reader_ptr = shared_ptr_cast<BaseFileReader, CSVFileScan>(shared_from_this());

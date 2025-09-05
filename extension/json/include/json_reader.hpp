@@ -207,7 +207,7 @@ public:
 
 	void PrepareReader(ClientContext &context, GlobalTableFunctionState &) override;
 	bool TryInitializeScan(ClientContext &context, GlobalTableFunctionState &gstate,
-	                       LocalTableFunctionState &lstate) override;
+	                       LocalTableFunctionState &lstate, unique_lock<mutex> &parallel_lock) override;
 	void Scan(ClientContext &context, GlobalTableFunctionState &global_state, LocalTableFunctionState &local_state,
 	          DataChunk &chunk) override;
 	void FinishFile(ClientContext &context, GlobalTableFunctionState &gstate_p) override;
